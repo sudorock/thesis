@@ -106,9 +106,10 @@ pygame.init()
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Direction of Time')
 screen.fill(background_color)
+font = pygame.font.SysFont(None, 22)
 
 particle_size = 10
-number_of_particles = 40
+number_of_particles = 50
 particles = []
 
 # initialize particles
@@ -140,48 +141,50 @@ running = True
 reverse = 0
 forward = 0
 hist = 0
+reverse_once = 0    # flag to stop reversing velocities every time it enters reverse motion for loop
 
-reverse_once = 0
 collision_count = 0
 
 history = {}    # store position and color in memory
+frame = 0   # counter for history
 
-n = 0
-frame = 0
 j = 0   # iterator for reverse frame
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 22)
-start_time = 0
-r = 0
-time_list = []
-rr = 0
+start_time = 0  # store time when 'f' is pressed
+reverse_time = 0    # store time when 'r' is pressed
+
+time_list = []  # stores time values in seconds
+r = 0   # iterator for time_list
+rr = 0  # flag to store index for time_list reversal when 'r' or 'h' is pressed
 
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_f:    # press 'f' for forward motion
             forward = 1
             reverse = 0
             frame = 0
             start_time = time.time()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:    # press 'r' for reversing velocities
             reverse = 1
             forward = 0
             reverse_once = 0
             rr = r - 1  # index at which time is reversed
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_h:
+            reverse_time = time.time()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_h:    # press 'h' for reversing motion from memory
             reverse = 0
             forward = 0
             hist = 1
             j = frame - 1
+            rr = r - 1
 
     screen.fill(background_color)   # refresh screen with background for every frame
+
+    # Initial display of particles
 
     if forward == 0 and reverse == 0 and hist == 0:
         for particle in particles:
             particle.display()
-
 
     # forward motion
 
@@ -204,13 +207,19 @@ while running:
             history[frame, z, 2] = particles[z].color
 
         time_list.append(int(time.time() - start_time))
-        timer = font.render("Time: " + str(time_list[r]), True, green, background_color)
+        timer = font.render("Time: " + str(time_list[r]), True, black, background_color)
         screen.blit(timer, (width - 150, 20))
         r = r + 1
 
     # reverse velocities
 
     if reverse == 1 and forward == 0 and hist == 0:
+        r = r - 1
+        # stop animation when reverse time reaches 0
+        if (time.time() - reverse_time == reverse_time - start_time) or r == -1:
+            pygame.time.wait(10000)
+            running = False
+
         if reverse_once == 0:
             for particle in particles:
                 reverse_velocity(particle)
@@ -227,25 +236,28 @@ while running:
             collision_count = 0
             particle.display()
 
-        r = r - 1
-        if r == -1:
-            pygame.time.wait(10000)
+        # display reverse time
         reverse_timer = font.render(str(time_list[r]), True, red, background_color)
         screen.blit(reverse_timer, (width - 80, 20))
-        screen.blit(font.render("Time: " + str(time_list[rr]), True, green, background_color), (width - 150, 20))
+        screen.blit(font.render("Time: " + str(time_list[rr]), True, black, background_color), (width - 150, 20))
 
     # reverse motion using memory
 
     if reverse == 0 and forward == 0 and hist == 1:
+
+        r = r - 1
+        # stop animation when reverse flag becomes 0 or when index for history becomes 0
+        if r == -1 or j == -1:
+            pygame.time.wait(10000)
+            running = False
+
         for k in range(0, number_of_particles + 1):
             pygame.draw.circle(screen, history[j, k, 2], (int(history[j, k, 0]), int(history[j, k, 1])), particle_size, thickness)
 
-        r = r - 1
-        if r == -1:
-            pygame.time.wait(10000)
+        # display reverse time
         reverse_timer = font.render(str(time_list[r]), True, red, background_color)
         screen.blit(reverse_timer, (width - 80, 20))
-        screen.blit(font.render("Time: " + str(time_list[rr]), True, green, background_color), (width - 150, 20))
+        screen.blit(font.render("Time: " + str(time_list[rr]), True, black, background_color), (width - 150, 20))
 
     if hist == 0:
         frame = frame + 1
