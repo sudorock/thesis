@@ -1,7 +1,7 @@
 import pygame
 import random
 import time
-
+import numpy as np
 
 dt = float(input("Enter a value for dt: "))
 v_initial = 1000
@@ -15,6 +15,32 @@ color2 = (0, 0, 255)  # blue
 black = (0, 0, 0)
 corner = int(input("Enter 1 to start in Corner and if otherwise 0: "))
 thickness = 1
+
+table = np.zeros((1000, 10))  # table to store velocities
+t_iter = 0      # iterator for the table
+
+# store velocities before and after collision
+
+
+def store(p1, p2, t_iterator, before):
+    if before == 1:
+        # velocities before colllision
+        table[t_iterator, 2] = p1.v_x
+        table[t_iterator, 3] = p1.v_y
+        table[t_iterator, 4] = p2.v_x
+        table[t_iterator, 5] = p2.v_y
+        # Difference of positions
+        table[t_iterator, 0] = p2.x - p1.x
+        table[t_iterator, 1] = p2.y - p2.y
+
+    elif before == 0:
+        table[t_iterator, 6] = p1.v_x
+        table[t_iterator, 7] = p1.v_y
+        table[t_iterator, 8] = p2.v_x
+        table[t_iterator, 9] = p2.v_y
+        t_iterator = t_iterator + 1
+
+    return t_iterator
 
 
 def color_change(p1, p2):
@@ -156,6 +182,10 @@ time_list = []  # stores time values in seconds
 r = 0   # iterator for time_list
 rr = 0  # flag to store index for time_list reversal when 'r' or 'h' is pressed
 
+frame_rate = 0.03
+time_elapsed = 0
+display = 0
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -164,7 +194,7 @@ while running:
             forward = 1
             reverse = 0
             frame = 0
-            start_time = time.time()
+            start_time = time_elapsed = time.time()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:    # press 'r' for reversing velocities
             reverse = 1
             forward = 0
@@ -178,7 +208,13 @@ while running:
             j = frame - 1
             rr = r - 1
 
-    screen.fill(background_color)   # refresh screen with background for every frame
+    # refresh screen with background for every frame
+    if time.time() - time_elapsed >= frame_rate and time.time() - time_elapsed <= frame_rate + 1:
+        screen.fill(background_color)
+        display = 1
+        time_elapsed = time.time()
+    else:
+        display = 0
 
     # Initial display of particles
 
@@ -197,9 +233,12 @@ while running:
                     collision_count = collision_count + 1
                     colliding_particle = particle2
             if collision_count == 1:
+                t_iter = store(particle, colliding_particle, t_iter, 1)     # store velocities before collision
                 collide(particle, colliding_particle)
+                t_iter = store(particle, colliding_particle, t_iter, 0)     # store velocities before collision
             collision_count = 0
-            particle.display()
+            if display == 1:
+                particle.display()
 
         for z in range(0, number_of_particles + 1):
             history[frame, z, 0] = particles[z].x
@@ -219,7 +258,6 @@ while running:
         if (time.time() - reverse_time == reverse_time - start_time) or r == -1:
             pygame.time.wait(10000)
             running = False
-
         if reverse_once == 0:
             for particle in particles:
                 reverse_velocity(particle)
@@ -234,7 +272,8 @@ while running:
             if collision_count == 1:
                 collide(particle, colliding_particle)
             collision_count = 0
-            particle.display()
+            if display == 1:
+                particle.display()
 
         # display reverse time
         reverse_timer = font.render(str(time_list[r]), True, red, background_color)
@@ -252,7 +291,8 @@ while running:
             running = False
 
         for k in range(0, number_of_particles + 1):
-            pygame.draw.circle(screen, history[j, k, 2], (int(history[j, k, 0]), int(history[j, k, 1])), particle_size, thickness)
+            if display == 1:
+                pygame.draw.circle(screen, history[j, k, 2], (int(history[j, k, 0]), int(history[j, k, 1])), particle_size, thickness)
 
         # display reverse time
         reverse_timer = font.render(str(time_list[r]), True, red, background_color)
@@ -265,3 +305,5 @@ while running:
         j = j - 1
 
     pygame.display.flip()
+
+np.savetxt('tabledump.txt', table, fmt='%1.0f', delimiter=',')
