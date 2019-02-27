@@ -4,8 +4,8 @@ import time
 import numpy as np
 
 dt = float(input("Enter a value for dt (0.01 for default): "))
-color_factor = float(input("Enter a value for Colour Change Determinancy (0 - 100): "))/100
-corner = int(input("Enter 1 to start in Corner and if otherwise 0: "))
+color_factor = 100  # float(input("Enter a value for Colour Change Determinancy (0 - 100): "))/100
+corner = 1  # int(input("Enter 1 to start in Corner and if otherwise 0: "))
 
 v_initial = float(input("Enter an initial value for velocity: "))       # initial velocity of particle
 background_color = (255, 255, 255)
@@ -15,14 +15,14 @@ green = (0, 255, 0)
 color1 = (255, 165, 80)  # orange
 color2 = (0, 0, 255)  # blue
 black = (0, 0, 0)
-thickness = 1   # thickness of particle
+thickness = 0   # thickness of particle
 particle_size = 10
 number_of_particles = 50
 particles = []
 
 forward_table = np.zeros((1000, 10)) # table to store forward values
 # deterministic reverse velocity reverse_table
-reverse_table = np.zeros((20000, 10))  # reverse_table to store velocities
+reverse_table = np.genfromtxt('tabledump.txt', delimiter=',')  # reverse_table to store velocities
 t_iter = 0      # iterator for the reverse_table
 
 reverse = 0     # flag for reverse motion by reversing direction of velocities
@@ -66,7 +66,7 @@ class Particle:
         self.v_y = v_y
         self.size = size
         self.color = color
-        self.thickness = 1
+        self.thickness = 0
 
     def display(self):
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.size, self.thickness)
@@ -102,7 +102,7 @@ class Particle:
 def check_collision(p1, p2):
     s = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2  # s = square of distance between particles
 
-    if s < (p1.size + p2.size) ** 2:
+    if s < (p1.size + p2.size) ** 2 and s!= 0:
         return True
 
 
@@ -117,10 +117,10 @@ def collide(p1, p2):
         lamda = a / s
 
         # new velocities after collision
-        p1.v_x = p1.v_x - lamda * e1
-        p1.v_y = p1.v_y - lamda * e2
-        p2.v_x = p2.v_x + lamda * e1
-        p2.v_y = p2.v_y + lamda * e2
+        p1.v_x = int(p1.v_x - lamda * e1)
+        p1.v_y = int(p1.v_y - lamda * e2)
+        p2.v_x = int(p2.v_x + lamda * e1)
+        p2.v_y = int(p2.v_y + lamda * e2)
 
     color_change(p1, p2)
 
@@ -191,10 +191,10 @@ if corner == 1:
     k = 1
     while j <= number_of_particles:
         for z in range(1, int(number_of_particles ** 0.5) + 1):
-            x_init = 4 * z * particle_size + particle_size * (random.random() - 0.5)
-            y_init = 4 * k * particle_size + particle_size * (random.random() - 0.5)
-            v_x_init = v_initial * (random.random() - 0.5)
-            v_y_init = v_initial * (random.random() - 0.5)
+            x_init = 4 * z * particle_size + particle_size * int((random.random() - 0.5))
+            y_init = 4 * k * particle_size + particle_size * int((random.random() - 0.5))
+            v_x_init = v_initial * random.randint(0, 5)
+            v_y_init = v_initial * random.randint(0, 5)
             particle = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
             particles.append(particle)
             j = j + 1
@@ -208,7 +208,8 @@ else:
         particle = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
         particles.append(particle)
 
-
+c_count = 0
+c_count2 = 0
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -352,7 +353,8 @@ while running:
                     # collision_check = [int(abs(particle2.x - particle.x)), int(abs(particle2.y - particle.y)),
                     #                    int(particle.v_x), int(particle.v_y), int(particle2.v_x), int(particle2.v_y)]
                     # compare with reverse_table and change velocities
-                    for k in range(0, t_iter):
+                    c_count += 1
+                    for k in range(0, len(reverse_table)):
                         table_check1 = [reverse_table[k, 6], reverse_table[k, 7],
                                         reverse_table[k, 8], reverse_table[k, 9]]
                         table_check2 = [reverse_table[k, 2],reverse_table[k, 3],
@@ -368,14 +370,18 @@ while running:
                             particle.v_y = reverse_table[k, 3]
                             particle2.v_x = reverse_table[k, 4]
                             particle2.v_y = reverse_table[k, 5]
-                            print("yes 1  ", collision_check, " ", table_check1)
+                            print("yes 1  ", collision_check, " ", table_check1, "Index:", k," c_count:", c_count, " c_count2:", c_count2)
+                            c_count2 += 1
+                            break
                         # if there is a corresponding row for collision with w1 and w2, then change to v1 and v2
                         elif np.array_equal(collision_check, table_check2):
                             particle.v_x = reverse_table[k, 6]
                             particle.v_y = reverse_table[k, 7]
                             particle2.v_x = reverse_table[k, 8]
                             particle2.v_y = reverse_table[k, 9]
-                            print("yes 2  ", collision_check, " ", table_check2)
+                            print("yes 2  ", collision_check, " ", table_check2, "Index:", k, " c_count:", c_count, " c_count2:", c_count2)
+                            c_count2 += 1
+                            break
             if display == 1:
                 particle.display()
 
@@ -402,29 +408,7 @@ while running:
 
     pygame.display.flip()
 
-
-# #check for duplicate rows in stored reverse_table
-# delete_rows = []
-
-# for i in range(0, len(reverse_table)):
-#     for j in range(0, i):
-#         if np.array_equal(reverse_table[i],reverse_table[j]):
-#             if reverse_table[i].all():
-#                 print(reverse_table[i])
-#             delete_rows.append(j)
-#
-#
-# reverse_table = np.delete(reverse_table, delete_rows, axis=0)
-
-# save reverse_table as .txt
-np.savetxt('tabledump.txt', reverse_table, fmt='%d', delimiter=',')
-
-
-#'%1.0f'
-
-# #delete duplicate rows
-# for i in range(0, len(delete_rows)):
-#     reverse_table = np.delete(reverse_table, delete_rows[i], axis=0)
+print("c_count:", c_count, " c_count2:", c_count2)
 
 
 # 1. was never able to match a row
@@ -433,3 +417,5 @@ np.savetxt('tabledump.txt', reverse_table, fmt='%d', delimiter=',')
 
 # 4. w1 and w2 table entry must be -w1 and -w2
 # 5. Int value of dt and all other values
+
+# loadtxt
