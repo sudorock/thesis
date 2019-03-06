@@ -9,7 +9,7 @@ corner = 1  # int(input("Enter 1 to start in Corner and if otherwise 0: "))
 
 v_initial = float(input("Enter an initial value for velocity: "))  # initial velocity of particle
 background_color = (255, 255, 255)
-(width, height) = (500, 500)
+(width, height) = (1000, 700)
 red = (255, 0, 0)
 green = (0, 255, 0)
 color1 = (255, 165, 80)  # orange
@@ -17,7 +17,7 @@ color2 = (0, 0, 255)  # blue
 black = (0, 0, 0)
 thickness = 1  # thickness of particle
 particle_size = 20
-number_of_particles = 6
+number_of_particles = 10
 particles = []
 
 # deterministic reverse velocity reverse_table
@@ -107,7 +107,6 @@ def check_collision(p1, p2):
         return True
     else:
         return False
-
 
 
 # particle collision
@@ -266,7 +265,7 @@ while running:
             hist = 0
             reverse_once = 0
             deterministic = 1
-            print("Velocity reversed: \n \n")
+            print("Velocity reversed \n")
             rr = timer_counter - 1  # index at which time is reversed
             reverse_time = time.time()
 
@@ -305,11 +304,31 @@ while running:
                 if check_collision(particle, particle2):
                     collision_count = collision_count + 1
                     colliding_particle = particle2
+                    for particle3 in particles[i + 1:]:
+                        if check_collision(particle2, particle3):
+                            collision_count = collision_count + 1
+                            for particle4 in particles[i + 1:]:
+                                if check_collision(particle3, particle4):
+                                    collision_count = collision_count + 1
+                                    for particle5 in particles[i + 1:]:
+                                        if check_collision(particle4, particle5):
+                                            collision_count = collision_count + 1
+                                            for particle6 in particles[i + 1:]:
+                                                if check_collision(particle5, particle6):
+                                                    collision_count = collision_count + 1
             if collision_count == 1:
                 t_iter = store(particle, colliding_particle, t_iter, 1)  # store velocities before collision
                 collide(particle, colliding_particle)
                 t_iter = store(particle, colliding_particle, t_iter, 0)  # store velocities before collision
+                collision_data = [colliding_particle.x - particle.x,
+                                   colliding_particle.y - particle.y,
+                                   particle.v_x, particle.v_y, colliding_particle.v_x,
+                                   colliding_particle.v_y]
+                print(t_iter-1, " Collision recorded ", "Rec Table data: ", reverse_table[t_iter-1], "Actual data: ", collision_data)
                 # print(t_iter)
+            elif collision_count > 1:
+                print("------Multiple collision:", collision_count)
+
             collision_count = 0
             particle.move()
             particle.wall_bounce()
@@ -328,8 +347,8 @@ while running:
         # display time
         timer_counter = display_time(forward, timer_counter)
 
-        if t_iter > len(reverse_table) - 10:  # break when reverse table length is about to be reached
-            break
+        # if t_iter > len(reverse_table) - 10:  # break when reverse table length is about to be reached
+        #     break
 
         # stop animation when reverse time reaches 0
         if (time.time() - reverse_time == reverse_time - start_time) or timer_counter == -1:
@@ -347,6 +366,18 @@ while running:
                 if check_collision(particle, particle2):
                     collision_count = collision_count + 1
                     colliding_particle = particle2
+                    for particle3 in particles[i + 1:]:
+                        if check_collision(particle2, particle3):
+                            collision_count = collision_count + 1
+                            for particle4 in particles[i + 1:]:
+                                if check_collision(particle3, particle4):
+                                    collision_count = collision_count + 1
+                                    for particle5 in particles[i + 1:]:
+                                        if check_collision(particle4, particle5):
+                                            collision_count = collision_count + 1
+                                            for particle6 in particles[i + 1:]:
+                                                if check_collision(particle5, particle6):
+                                                    collision_count = collision_count + 1
             if collision_count == 1:
                 # t_iter = store(particle, colliding_particle, t_iter, 1)  # store velocities before collision
                 collide(particle, colliding_particle)
@@ -402,6 +433,12 @@ while running:
                     # compare with reverse_table and change velocities
                     collision_count = collision_count + 1
                     colliding_particle = particle2
+                    for particle3 in particles[i + 1:]:
+                        if check_collision(particle2, particle3):
+                            collision_count = collision_count + 1
+                            for particle4 in particles[i + 1:]:
+                                if check_collision(particle3, particle4):
+                                    collision_count = collision_count + 1
             if collision_count == 1:
                 # collision_check = [int(particle.v_x), int(particle.v_y), int(particle2.v_x), int(particle2.v_y)]
                 collision_check = [colliding_particle.x - particle.x,
@@ -424,67 +461,61 @@ while running:
                     # print(collision_check, " ", table_check1, " ", table_check2)
                     # if there is a corresponding row for collision with v1 and v2, then change to w1 and w2
                     if np.array_equal(collision_check, table_check1):
-                        particle.v_x = reverse_table[k, 2]
-                        particle.v_y = reverse_table[k, 3]
+                        particle.v_x           = reverse_table[k, 2]
+                        particle.v_y           = reverse_table[k, 3]
                         colliding_particle.v_x = reverse_table[k, 4]
                         colliding_particle.v_y = reverse_table[k, 5]
                         color_change(particle, colliding_particle)
                         c_count2 += 1
-                        print("Collision found 1:  ", "Actual data: ", collision_check, "Table data: ", table_check1,
+                        print(k, " Collision found  ", "Actual data: ", collision_check, "Table data: ", table_check1,
                               "reversed to:", table_check2)
                         break
+
+                    # if there is a corresponding row for collision with w1 and w2, then change to v1 and v2
+                    # elif np.array_equal(collision_check, table_check2):
+                    #     particle.v_x = reverse_table[k, 6]
+                    #     particle.v_y = reverse_table[k, 7]
+                    #     colliding_particle.v_x = reverse_table[k, 8]
+                    #     colliding_particle.v_y = reverse_table[k, 9]
+                    #     color_change(particle, colliding_particle)
+                    #     c_count2 += 1
+                    #     print("Collision found 2:  ", "Actual data: ", collision_check, "Table data: ", table_check2, "reversed to:", table_check1)
 
                 if disp_once != c_count - c_count2:
                     # screen.fill(background_color)
                     # colliding_particle.display()
-                    # particle.display()
+                    # colliding_particle.display()
                     # pygame.time.wait(5000)
                     print("c_count - c_count2:",c_count - c_count2, "c_count:", c_count, "c_count2:", c_count2,
                           " Collision not found in table for: ", collision_check)
+                    # particle.v_x = reverse_table[k-1, 2]
+                    # particle.v_y = reverse_table[k-1, 3]
+                    # colliding_particle.v_x = reverse_table[k-1, 4]
+                    # colliding_particle.v_y = reverse_table[k-1, 5]
+                    # collide(colliding_particle, particle)
                     disp_once = c_count - c_count2
                     # screen.fill(background_color)
                     # particle.display()
                     # particle2.display()
-                    # pygame.time.wait(1000)
+                    # pygame.draw.circle(screen, colliding_particle.color, (int(colliding_particle.x), int(colliding_particle.y)), colliding_particle.size, 0)
+                    # pygame.draw.circle(screen, particle.color, (int(particle.x), int(particle.y)), particle.size, 0)
+                    # time.sleep(3)
                     # break
             elif collision_count > 1:
                 print("------Multiple collision:", collision_count)
             collision_count = 0
 
 
-                        # if there is a corresponding row for collision with w1 and w2, then change to v1 and v2
-                        # elif np.array_equal(collision_check, table_check2):
-                        #     particle.v_x = reverse_table[k, 6]
-                        #     particle.v_y = reverse_table[k, 7]
-                        #     particle2.v_x = reverse_table[k, 8]
-                        #     particle2.v_y = reverse_table[k, 9]
-                        #     c_count2 += 1
-                        #     print("Collision found 2:  ", "Actual data: ", collision_check, "Table data: ", table_check2, "reversed to:", table_check1)
             particle.move()
             particle.wall_bounce()
             if display == 1:
                 particle.display()
-
-            # for z in range(0, number_of_particles + 1):
-            #     history_det[det_frame, z, 0] = particles[z].x
-            #     history_det[det_frame, z, 1] = particles[z].y
-            #     history_det[det_frame, z, 2] = particles[z].color
-            #
-            # for k in range(0, number_of_particles + 1):
-            #     if display == 1:
-            #         pygame.draw.circle(screen, history[rev_frame, k, 2],
-            #                            (int(history[rev_frame, k, 0]), int(history[rev_frame, k, 1])),
-            #                            particle_size, thickness)
-
+            screen.blit(font.render("c_ctr: " + str(k), True, black, background_color),
+                        (width - 150, 50))
     if hist == 0:
         frame = frame + 1
     elif hist == 1:
         rev_frame = rev_frame - 1
-
-    # if deterministic == 1:
-    #     det_frame = det_frame + 1
-    # elif deterministic == 1:
-    #     det_rev_frame = det_rev_frame - 1
 
     pygame.display.flip()
 
@@ -492,7 +523,7 @@ while running:
 print("Actual Collisions: ",c_count, " Collisions found in table: ", c_count2)
 
 # #check for duplicate rows in stored reverse_table
-delete_rows = []
+# delete_rows = []
 
 # print(reverse_table, "\n \n \n")
 # for i in range(0, len(reverse_table)):
@@ -506,13 +537,12 @@ delete_rows = []
 # reverse_table = np.delete(reverse_table, delete_rows, axis=0)
 
 
-
-for i in range(0, len(reverse_table)):
-    if not reverse_table[i].any():
-        delete_rows.append(i)
-
-
-reverse_table = np.delete(reverse_table, delete_rows, axis=0)
+# for i in range(0, len(reverse_table)):
+#     if not reverse_table[i].any():
+#         delete_rows.append(i)
+#
+#
+# reverse_table = np.delete(reverse_table, delete_rows, axis=0)
 
 # print(reverse_table, "\n \n \n")
 
