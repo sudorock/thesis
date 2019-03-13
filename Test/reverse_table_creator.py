@@ -1,23 +1,29 @@
 import pygame
+from pygame import gfxdraw
 import random
 import time
 import numpy as np
 
 dt = float(input("Enter a value for dt (0.01 for default): "))
 color_factor = 100  #float(input("Enter a value for Colour Change Determinancy (0 - 100): ")) / 100
-corner = 1  # int(input("Enter 1 to start in Corner and if otherwise 0: "))
+corner = int(input("Enter 1 to start in Corner and if otherwise 0: "))
 
 v_initial = float(input("Enter an initial value for velocity: "))  # initial velocity of particle
-background_color = (255, 255, 255)
-(width, height) = (1000, 700)
+# background_color = (255, 255, 255)
+background_color = (0, 0, 0)
+(width, height) = (1300, 700)
 red = (255, 0, 0)
 green = (0, 255, 0)
-color1 = (255, 165, 80)  # orange
-color2 = (0, 0, 255)  # blue
+# color1 = (255, 165, 80)  # orange
+# color2 = (0, 0, 255)  # blue
+color1 = (255, 0, 0)  # orange
+color2 = (0, 75, 255)  # blue
 black = (0, 0, 0)
+grey = (255,255,0)
+white = (255, 255, 255)
 thickness = 1  # thickness of particle
-particle_size = 20
-number_of_particles = 10
+particle_size = 15
+number_of_particles = 30
 particles = []
 
 # deterministic reverse velocity reverse_table
@@ -53,7 +59,7 @@ pygame.init()
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Direction of Time')
 screen.fill(background_color)
-font = pygame.font.SysFont(None, 22)
+font = pygame.font.SysFont(None, 24, bold=True)
 
 
 class Particle:
@@ -68,7 +74,9 @@ class Particle:
         self.thickness = 1
 
     def display(self):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.size, self.thickness)
+        # pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.size, self.thickness)
+        pygame.gfxdraw.aacircle(screen, int(self.x), int(self.y), self.size, self.color)
+        pygame.gfxdraw.filled_circle(screen, int(self.x), int(self.y), self.size, self.color)
 
     def wall_bounce(self):
 
@@ -188,16 +196,19 @@ def display_time(fwd, counter):
     # forward time
     if fwd == 1:
         time_list.append(int(time.time() - start_time))
-        timer = font.render("Time: " + str(time_list[counter]), True, black, background_color)
-        screen.blit(timer, (width - 150, 20))
+        timer = font.render(str(time_list[counter]), True, green, background_color)
+        screen.blit(font.render("Time: ", True, white, background_color), (width - 150, 20))
+        screen.blit(timer, (width - 95, 20))
         counter = counter + 1
     # reverse time
     else:
         counter = counter - 1
         if counter > -1:
             reverse_timer = font.render(str(time_list[counter]), True, red, background_color)
-            screen.blit(reverse_timer, (width - 80, 20))
-            screen.blit(font.render("Time: " + str(time_list[rr]), True, black, background_color), (width - 150, 20))
+            screen.blit(reverse_timer, (width - 65, 20))
+            # screen.blit(font.render("Time: " + str(time_list[rr]), True, red, background_color), (width - 150, 20))
+            screen.blit(font.render("Time: ", True, white, background_color), (width - 150, 20))
+            screen.blit(font.render(str(time_list[rr]), True, green, background_color), (width - 95, 20))
         else:
             return counter
     return counter
@@ -219,8 +230,8 @@ if corner == 1:
             # y_init = 1.5*k * particle_size + particle_size
             # v_x_init = v_initial
             # v_y_init = 0
-            v_x_init = v_initial * random.randint(0, 3)
-            v_y_init = v_initial * random.randint(0, 7)
+            v_x_init = v_initial * random.randint(0, 5)
+            v_y_init = v_initial * random.randint(0, 5)
             pos[j] = (x_init, y_init)
             # print("Initial Position: ", j, " ", pos[j])
             particle = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
@@ -510,8 +521,8 @@ while running:
             particle.wall_bounce()
             if display == 1:
                 particle.display()
-            screen.blit(font.render("c_ctr: " + str(k), True, black, background_color),
-                        (width - 150, 50))
+            # screen.blit(font.render("c_ctr: " + str(k), True, white, background_color),
+            #             (width - 150, 50))
     if hist == 0:
         frame = frame + 1
     elif hist == 1:
@@ -569,3 +580,7 @@ np.savetxt('tabledump.txt', reverse_table, fmt='%d', delimiter=',')
 # sticking particles
 
 # loadtxt
+
+# wall probelm reflection
+
+# process is indeterministic causes irreversibility
