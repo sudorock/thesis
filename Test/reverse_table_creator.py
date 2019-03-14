@@ -6,7 +6,7 @@ import numpy as np
 
 dt = float(input("Enter a value for dt (0.01 for default): "))
 color_factor = 100  #float(input("Enter a value for Colour Change Determinancy (0 - 100): ")) / 100
-corner = int(input("Enter 1 to start in Corner and if otherwise 0: "))
+corner = 1 #int(input("Enter 1 to start in Corner and if otherwise 0: "))
 
 v_initial = float(input("Enter an initial value for velocity: "))  # initial velocity of particle
 # background_color = (255, 255, 255)
@@ -22,8 +22,8 @@ black = (0, 0, 0)
 grey = (255,255,0)
 white = (255, 255, 255)
 thickness = 1  # thickness of particle
-particle_size = 15
-number_of_particles = 30
+particle_size = 10
+number_of_particles = 40
 particles = []
 
 # deterministic reverse velocity reverse_table

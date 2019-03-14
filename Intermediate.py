@@ -18,8 +18,8 @@ black = (0, 0, 0)
 grey = (255, 255, 0)
 white = (255, 255, 255)
 thickness = 1  # thickness of particle
-particle_size = 15
-number_of_particles = 30
+particle_size = 10
+number_of_particles = 40
 particles = []
 
 # deterministic reverse velocity reverse_table
@@ -35,7 +35,7 @@ deterministic = 0  # use deterministic reverse_table for reversal
 
 # collision_count = 0  # counter for number of collisions
 
-memory = np.zeros((10000, number_of_particles, 3), dtype=object)  # store position and color in memory
+memory = np.zeros((10000, number_of_particles + 2, 3), dtype=object)  # store position and color in memory
 frame = 0  # counter for history
 
 rev_frame = 0  # iterator for reverse frame
@@ -48,7 +48,7 @@ rr = 0  # flag to store index for time_list reversal when 'r' or 'h' is pressed
 
 frame_rate = 0.03  # frame rate of display
 time_elapsed = 0  # to store time elapsed for clock
-display = 0  # flag for display of particles according to frame rate
+display_flag = 0  # flag for display of particles according to frame rate
 
 running = True
 pygame.init()
@@ -143,51 +143,89 @@ def color_change(p1, p2):
             p1.color = color1
 
 
-def collider(particles_f, mode_f, t_iter_f):
+def multiple_collision(particle, particles_f):
     collision_count = 0
-    for i, particle1 in enumerate(particles_f):
-        for particle2 in particles[i + 1:]:
-            if check_collision(particle1, particle2):
-                collision_count = collision_count + 1
-                colliding_particle = particle2
-                for particle3 in particles[i + 1:]:
-                    if check_collision(particle2, particle3):
-                        collision_count = collision_count + 1
-                        for particle4 in particles[i + 1:]:
-                            if check_collision(particle3, particle4):
-                                collision_count = collision_count + 1
-                                for particle5 in particles[i + 1:]:
-                                    if check_collision(particle4, particle5):
-                                        collision_count = collision_count + 1
-                                        for particle6 in particles[i + 1:]:
-                                            if check_collision(particle5, particle6):
-                                                collision_count = collision_count + 1
+    for particle2 in particles_f:
+        if check_collision(particle, particle2):
+            collision_count = collision_count + 1
+            colliding_particle = particle2
+            for particle3 in particles_f:
+                if check_collision(particle2, particle3) and particle3 != particle:
+                    collision_count = collision_count + 1
+                    for particle4 in particles_f:
+                        if check_collision(particle3, particle4) and particle4 != particle2:
+                            collision_count = collision_count + 1
+                            for particle5 in particles_f:
+                                if check_collision(particle4, particle5) and particle5 != particle3:
+                                    collision_count = collision_count + 1
+                                    for particle6 in particles_f:
+                                        if check_collision(particle5, particle6) and particle6 != particle4:
+                                            collision_count = collision_count + 1
+                                            for particle7 in particles_f:
+                                                if check_collision(particle6, particle7) and particle7 != particle5:
+                                                    collision_count = collision_count + 1
+                                                    for particle8 in particles_f:
+                                                        if check_collision(particle7,
+                                                                           particle8) and particle8 != particle6:
+                                                            collision_count = collision_count + 1
+                                                            for particle9 in particles_f:
+                                                                if check_collision(particle8, particle9):
+                                                                    collision_count = collision_count + 1
+                                                                    for particle10 in particles_f:
+                                                                        if check_collision(particle10, particle9):
+                                                                            collision_count = collision_count + 1
+                                                                            for particle11 in particles_f:
+                                                                                if check_collision(particle10,
+                                                                                                   particle11):
+                                                                                    collision_count = collision_count + 1
+
+    if collision_count == 1:
+        return collision_count, colliding_particle
+    else:
+        return collision_count, particle
+
+
+def collider(t_iter_f):
+    for i, particle in enumerate(particles):
+        collision_count, colliding_particle = multiple_collision(particle, particles[i + 1:])
         if collision_count == 1:
-            if mode_f == 1:
-                t_iter_f = store(particle1, colliding_particle, t_iter_f, 1)  # store velocities before collision
-                collide(particle1, colliding_particle)
-                t_iter_f = store(particle1, colliding_particle, t_iter_f, 0)  # store velocities after collision
-            elif mode_f == 2:
-                collide(particle1, colliding_particle)
-            elif mode_f == 3:
-                table_check_reverse(colliding_particle, particle1, t_iter_f)
-        collision_count = 0
+            if mode == 1:
+                t_iter_f = store(particle, colliding_particle, t_iter_f, 1)  # store velocities before collision
+                collide(particle, colliding_particle)
+                t_iter_f = store(particle, colliding_particle, t_iter_f, 0)  # store velocities after collision
+            elif mode == 2:
+                collide(particle, colliding_particle)
+            elif mode == 3:
+                table_check_reverse(colliding_particle, particle, t_iter_f)
     return t_iter_f
 
 
-def move_and_display(particles_f):
-        for particle_f in particles_f:
+def move_and_display():
+    if mode == 0:       # Initial display of particles
+        for particle in particles:
+            particle.display()
+        memory_store()
+    elif mode == 4:
+        print(rev_frame, memory[rev_frame])
+        for k, p in enumerate(particles):
+            if display_flag == 1:
+                pygame.gfxdraw.aacircle(screen, memory[rev_frame, k, 0], memory[rev_frame, k, 1],
+                                        particle_size, memory[rev_frame, k, 2])
+                pygame.gfxdraw.filled_circle(screen, memory[rev_frame, k, 0], memory[rev_frame, k, 1],
+                                             particle_size, memory[rev_frame, k, 2])
+    else:
+        for particle_f in particles:
             particle_f.move()
             particle_f.wall_bounce()
-            if display == 1:
+            if display_flag == 1:
                 particle_f.display()
 
 
 # reverse velocity
-def reverse_velocity(particles_f):
-    for p in particles_f:
-        p.v_x = -p.v_x
-        p.v_y = -p.v_y
+def reverse_velocity():
+    for particle in particles:
+        particle.v_x = -particle.v_x
+        particle.v_y = -particle.v_y
 
 
 # store velocities before and after collision
@@ -211,42 +249,40 @@ def store(p1, p2, t_iterator, before):
 
 
 def display_time(counter):
-    # forward time
-    if mode == 1:
+    if mode == 1:       # forward time
         time_list.append(int(time.time() - start_time))
         timer = font.render(str(time_list[counter]), True, green, background_color)
-        screen.blit(font.render("Time: ", True, white, background_color), (width - 150, 20))
-        screen.blit(timer, (width - 95, 20))
+        screen.blit(font.render("Time: ", True, white, background_color), (width - 180, 20))
+        screen.blit(timer, (width - 110, 20))
         counter = counter + 1
-    # reverse time
-    else:
+    elif mode == 2 or mode == 3 or mode == 4:       # reverse time
         counter = counter - 1
         if counter > -1:
             reverse_timer = font.render(str(time_list[counter]), True, red, background_color)
-            screen.blit(reverse_timer, (width - 65, 20))
-            screen.blit(font.render("Time: ", True, white, background_color), (width - 150, 20))
-            screen.blit(font.render(str(time_list[rr]), True, green, background_color), (width - 95, 20))
+            screen.blit(reverse_timer, (width - 60, 20))
+            screen.blit(font.render("Time: ", True, white, background_color), (width - 180, 20))
+            screen.blit(font.render(str(time_list[rr]), True, green, background_color), (width - 110, 20))
         else:
             return counter
     return counter
 
 
-def memory_store(frame_f, particles_f):
+def memory_store():
+    if mode == 1:
+        for i, pa in enumerate(particles):
+            memory[frame, i, 0] = int(pa.x)
+            memory[frame, i, 1] = int(pa.y)
+            memory[frame, i, 2] = pa.color
 
-    for z in range(0, number_of_particles):
-        memory[frame_f, z, 0] = int(particles_f[z].x)
-        memory[frame_f, z, 1] = int(particles_f[z].y)
-        memory[frame_f, z, 2] = particles_f[z].color
 
+def table_check_reverse(colliding_particle, particle, t_iter_f):
 
-def table_check_reverse(colliding_particle_f, particle_f, t_iter_f):
-
-    collision_check = [colliding_particle_f.x - particle_f.x,
-                       colliding_particle_f.y - particle_f.y,
-                       particle_f.v_x,
-                       particle_f.v_y,
-                       colliding_particle_f.v_x,
-                       colliding_particle_f.v_y]
+    collision_check = [colliding_particle.x - particle.x,
+                       colliding_particle.y - particle.y,
+                       particle.v_x,
+                       particle.v_y,
+                       colliding_particle.v_x,
+                       colliding_particle.v_y]
 
     for k in range(0, t_iter_f):
         table_check = [reverse_table[k, 0],
@@ -256,12 +292,25 @@ def table_check_reverse(colliding_particle_f, particle_f, t_iter_f):
                        reverse_table[k, 8],
                        reverse_table[k, 9]]
         if np.array_equal(collision_check, table_check):
-            particle_f.v_x = reverse_table[k, 2]
-            particle_f.v_y = reverse_table[k, 3]
-            colliding_particle_f.v_x = reverse_table[k, 4]
-            colliding_particle_f.v_y = reverse_table[k, 5]
-            color_change(particle_f, colliding_particle_f)
+            particle.v_x = reverse_table[k, 2]
+            particle.v_y = reverse_table[k, 3]
+            colliding_particle.v_x = reverse_table[k, 4]
+            colliding_particle.v_y = reverse_table[k, 5]
+            color_change(particle, colliding_particle)
             break
+
+
+def frame_display(time_elapsed_f):
+
+    if time.time() - time_elapsed_f >= frame_rate:
+        if time.time() - time_elapsed_f <= frame_rate + 1:
+            screen.fill(background_color)
+            time_elapsed_f = time.time()
+            return 1, time_elapsed_f
+        else:
+            return 0, time_elapsed_f
+    else:
+        return 0, time_elapsed_f
 
 
 # initialize particles
@@ -273,8 +322,8 @@ while p_iter <= number_of_particles:
         y_init = 4 * k * particle_size + particle_size
         v_x_init = v_initial * random.randint(0, 5)
         v_y_init = v_initial * random.randint(0, 5)
-        particle = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
-        particles.append(particle)
+        particle_init = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
+        particles.append(particle_init)
         p_iter = p_iter + 1
     k = k + 1
 
@@ -284,7 +333,6 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_f:  # press 'f' for forward motion
             mode = 1
-            frame = 1
             start_time = time_elapsed = time.time()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:  # press 'r' for reversing velocities
             mode = 2
@@ -302,82 +350,31 @@ while running:
             rr = timer_counter - 1  # index at which time is reversed
             reverse_time = time.time()
 
-    # refresh screen with background for every frame
-    if time.time() - time_elapsed >= frame_rate:
-        if time.time() - time_elapsed <= frame_rate + 1:
-            screen.fill(background_color)
-            display = 1
-            time_elapsed = time.time()
-        else:
-            display = 0
-    else:
-        display = 0
+    display_flag, time_elapsed = frame_display(time_elapsed)     # refresh screen with background for every frame
 
-    # Initial display of particles
-    if mode == 0:
-        for particle in particles:
-            particle.display()
-        memory_store(frame, particles)
+    timer_counter = display_time(timer_counter)  # display time
 
-    elif mode == 1:     # forward motion
-        timer_counter = display_time(mode, timer_counter)       # display time
+    if timer_counter < 0 or (mode == 4 and rev_frame == -1):  # stop animation when reverse time reaches 0
+        pygame.time.wait(3000)
+        running = False
+        break
 
-        if t_iter > len(reverse_table) - 10:  # break when reverse table length is about to be reached
-            break
+    if t_iter > len(reverse_table) - 10:  # break when reverse table length is about to be reached
+        break
 
-        t_iter = collider(particles, mode, t_iter)
-        move_and_display(particles)
-        memory_store(frame, particles)   # store positions in history table for reverse display through memory
-
-    elif mode == 2:     # reverse velocities
-
-        timer_counter = display_time(mode, timer_counter)       # display time
-
-        if timer_counter < 0:    # stop animation when reverse time reaches 0
-            pygame.time.wait(3000)
-            running = False
-            break
+    if mode == 2 or mode == 3:     # reverse velocities
 
         if reverse_once == 0:
-            reverse_velocity(particles)
+            reverse_velocity()
             reverse_once = 1
 
-        t_iter = collider(particles, mode, t_iter)
-        move_and_display(particles)
+    t_iter = collider(t_iter)
+    move_and_display()     # move_and_display(particles)
+    memory_store()  # store positions in history table for reverse display through memory
 
-    elif mode == 3:     # deterministic reverse with reverse_table
-        timer_counter = display_time(mode, timer_counter)       # display time
-
-        if timer_counter < 0:       # stop animation when reverse time reaches 0
-            pygame.time.wait(3000)
-            running = False
-            break
-
-        if reverse_once == 0:
-            reverse_velocity(particles)
-            reverse_once = 1
-
-        t_iter = collider(particles, mode, t_iter)
-        move_and_display(particles)
-
-    else:       # reverse motion using memory
-        timer_counter = display_time(mode, timer_counter)       # display time
-
-        if rev_frame >= 0:
-            for k in range(0, number_of_particles):
-                if display == 1:
-                    pygame.gfxdraw.aacircle(screen, memory[rev_frame, k, 0], memory[rev_frame, k, 1],
-                                            particle_size, memory[rev_frame, k, 2])
-                    pygame.gfxdraw.filled_circle(screen, memory[rev_frame, k, 0], memory[rev_frame, k, 1],
-                                                 particle_size, memory[rev_frame, k, 2])
-        else:
-            pygame.time.wait(3000)
-            running = False
-            break
-
-    if hist == 0:
+    if mode == 1:
         frame = frame + 1
-    elif hist == 1:
+    elif mode == 4:
         rev_frame = rev_frame - 1
 
     pygame.display.flip()
