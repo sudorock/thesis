@@ -74,7 +74,6 @@ class Particle:
         pygame.gfxdraw.filled_circle(screen, int(self.x), int(self.y), self.size, self.color)
 
     def wall_bounce(self):
-
         # collision with right wall
         if self.x >= width - self.size:  # if particle has moved beyond right wall
             self.x = 2 * (width - self.size) - self.x
@@ -178,6 +177,25 @@ def multiple_collision(particle, particles_f):
                                                                                 if check_collision(particle10,
                                                                                                    particle11):
                                                                                     collision_count = collision_count + 1
+                                                                                    for particle12 in particles_f:
+                                                                                        if check_collision(particle12,
+                                                                                                           particle11):
+                                                                                            collision_count = collision_count + 1
+                                                                                            for particle13 in particles_f:
+                                                                                                if check_collision(
+                                                                                                        particle13,
+                                                                                                        particle12):
+                                                                                                    collision_count = collision_count + 1
+                                                                                                    for particle14 in particles_f:
+                                                                                                        if check_collision(
+                                                                                                                particle14,
+                                                                                                                particle13):
+                                                                                                            collision_count = collision_count + 1
+                                                                                                            for particle15 in particles_f:
+                                                                                                                if check_collision(
+                                                                                                                        particle14,
+                                                                                                                        particle15):
+                                                                                                                    collision_count = collision_count + 1
 
     if collision_count == 1:
         return collision_count, colliding_particle
@@ -206,7 +224,6 @@ def move_and_display():
             particle.display()
         memory_store()
     elif mode == 4:
-        print(rev_frame, memory[rev_frame])
         for k, p in enumerate(particles):
             if display_flag == 1:
                 pygame.gfxdraw.aacircle(screen, memory[rev_frame, k, 0], memory[rev_frame, k, 1],
@@ -244,7 +261,6 @@ def store(p1, p2, t_iterator, before):
         reverse_table[t_iterator, 8] = -int(p2.v_x)
         reverse_table[t_iterator, 9] = -int(p2.v_y)
         t_iterator = t_iterator + 1
-
     return t_iterator
 
 
@@ -276,14 +292,12 @@ def memory_store():
 
 
 def table_check_reverse(colliding_particle, particle, t_iter_f):
-
     collision_check = [colliding_particle.x - particle.x,
                        colliding_particle.y - particle.y,
                        particle.v_x,
                        particle.v_y,
                        colliding_particle.v_x,
                        colliding_particle.v_y]
-
     for k in range(0, t_iter_f):
         table_check = [reverse_table[k, 0],
                        reverse_table[k, 1],
@@ -315,17 +329,17 @@ def frame_display(time_elapsed_f):
 
 # initialize particles
 p_iter = 1
-k = 1
+a = 1
 while p_iter <= number_of_particles:
     for z in range(1, int(number_of_particles ** 0.5) + 1):
         x_init = 4 * z * particle_size + particle_size
-        y_init = 4 * k * particle_size + particle_size
+        y_init = 4 * a * particle_size + particle_size
         v_x_init = v_initial * random.randint(0, 5)
         v_y_init = v_initial * random.randint(0, 5)
         particle_init = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
         particles.append(particle_init)
         p_iter = p_iter + 1
-    k = k + 1
+    a = a + 1
 
 while running:
     for event in pygame.event.get():
@@ -354,8 +368,12 @@ while running:
 
     timer_counter = display_time(timer_counter)  # display time
 
-    if timer_counter < 0 or (mode == 4 and rev_frame == -1):  # stop animation when reverse time reaches 0
-        pygame.time.wait(3000)
+    if mode != 4 and timer_counter < 0:  # stop animation when reverse time reaches 0
+        pygame.time.wait(5000)
+        running = False
+        break
+    elif mode == 4 and rev_frame == -1:
+        pygame.time.wait(5000)
         running = False
         break
 
@@ -363,7 +381,6 @@ while running:
         break
 
     if mode == 2 or mode == 3:     # reverse velocities
-
         if reverse_once == 0:
             reverse_velocity()
             reverse_once = 1
@@ -380,10 +397,23 @@ while running:
     pygame.display.flip()
 
 
-# 3. Input output
-# 4. Stossahalantz
-# 5. Multiple collision function
+
+# Stossahalantz
+# Multiple collision function
+
+# Input output
+
 # Wall bounce optimize
-# 6. Annotate code
-# 7. Frame rate
+# Frame rate
 # Historical reverse initial position error/time
+
+"""
+I'm just thinking about the Stosszahlansatz (SZA). I think we should do the
+following. To run first a longer period of time to measure the W-s, by taking
+the statistics how many different processes happen of a given type in a unit
+time divided by the product of the occupation numbers. After a while the
+values of W-s become more or less stable. In the next run we can examine how
+SZA is satisfied (with those previously determined W's) during the forward/
+backward process. And this can be done for both deterministic and
+indeterministic processes.
+"""
