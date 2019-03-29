@@ -7,7 +7,7 @@ import numpy as np
 dt = float(input("Enter a value for dt (1 for default): "))
 color_factor = float(input("Enter a value for Colour Change Determinancy (0 - 100): ")) / 100
 
-v_initial = float(input("Enter an initial value for velocity (2 for default): "))  # initial velocity of particle
+v_initial = float(input("Enter an initial value for velocity: "))  # initial velocity of particle
 background_color = (0, 0, 0)
 (width, height) = (1300, 700)
 red = (255, 0, 0)
@@ -50,12 +50,35 @@ frame_rate = 0.03  # frame rate of display
 time_elapsed = 0  # to store time elapsed for clock
 display_flag = 0  # flag for display of particles according to frame rate
 
+# number of particles in a certain state (occupation number)
+occ_num_r = 0
+# occ_num_r2 = 0
+occ_num_b = 0
+# occ_num_b2 = 0
+
+step = 5 #for calculating average value of actual number of processes
+num_rr2bb = 0
+num_bb2rr = 0
+num_rr2bb_avg = 0
+
+num_rr2bb_l = []
+num_bb2rr_l = []
+
+prev_time_counter = 0
+
+# W list for r,r -> b,b
+w_rr2bb = 0
+w_rr2bb_l = []
+
+# W list for b,b -> r,r
+w_bb2rr = []
+
 running = True
 pygame.init()
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Direction of Time')
 screen.fill(background_color)
-font = pygame.font.SysFont(None, 24, bold=True)
+font = pygame.font.SysFont(None, 22, bold=True)
 
 
 class Particle:
@@ -115,7 +138,7 @@ def collide(p1, p2):
     e1 = p2.x - p1.x
     e2 = p2.y - p1.y
     a = e1 * (p1.v_x - p2.v_x) + e2 * (p1.v_y - p2.v_y)  # numerator of lamda
-
+    global num_rr2bb
     if a >= 0:
         lamda = a / s
         # new velocities after collision
@@ -124,7 +147,13 @@ def collide(p1, p2):
         p2.v_x = int(p2.v_x + lamda * e1)
         p2.v_y = int(p2.v_y + lamda * e2)
 
+    p1_color = p1.color
+    p2_color = p2.color
     color_change(p1, p2)
+    if (p1_color == color1 and p2_color == color1) and (p1.color == color2 and p2.color == color2):
+        num_rr2bb += 1
+        # print(num_rr2bb," ", w_rr2bb)
+
 
 
 # particle color change after collision
@@ -268,7 +297,7 @@ def display_time(counter):
     if mode == 1:       # forward time
         time_list.append(int(time.time() - start_time))
         timer = font.render(str(time_list[counter]), True, green, background_color)
-        screen.blit(font.render("Time: ", True, white, background_color), (width - 180, 20))
+        screen.blit(font.render("Time: ", True, white, background_color), (width - 220, 20))
         screen.blit(timer, (width - 110, 20))
         counter = counter + 1
     elif mode == 2 or mode == 3 or mode == 4:       # reverse time
@@ -276,7 +305,7 @@ def display_time(counter):
         if counter > -1:
             reverse_timer = font.render(str(time_list[counter]), True, red, background_color)
             screen.blit(reverse_timer, (width - 60, 20))
-            screen.blit(font.render("Time: ", True, white, background_color), (width - 180, 20))
+            screen.blit(font.render("Time: ", True, white, background_color), (width - 220, 20))
             screen.blit(font.render(str(time_list[rr]), True, green, background_color), (width - 110, 20))
         else:
             return counter
@@ -292,6 +321,7 @@ def memory_store():
 
 
 def table_check_reverse(colliding_particle, particle, t_iter_f):
+    global num_rr2bb
     collision_check = [colliding_particle.x - particle.x,
                        colliding_particle.y - particle.y,
                        particle.v_x,
@@ -310,7 +340,12 @@ def table_check_reverse(colliding_particle, particle, t_iter_f):
             particle.v_y = reverse_table[k, 3]
             colliding_particle.v_x = reverse_table[k, 4]
             colliding_particle.v_y = reverse_table[k, 5]
+            p1_color = particle.color
+            p2_color = colliding_particle.color
             color_change(particle, colliding_particle)
+            if (p1_color == color1 and p2_color == color1) and (particle.color == color2 and colliding_particle.color == color2):
+                num_rr2bb += 1
+                # print(num_rr2bb, " ", w_rr2bb)
             break
 
 
@@ -325,6 +360,37 @@ def frame_display(time_elapsed_f):
             return 0, time_elapsed_f
     else:
         return 0, time_elapsed_f
+
+
+def calc_w():
+    pass
+
+
+def display_sza():
+    w_avg = 0.0002
+    expected = w_avg*(occ_num_r**2)
+    #Actual and Calculated
+    num_actual = font.render(str(num_rr2bb_avg), True, green, background_color)
+    num_expected = font.render(str(round(expected,4)), True, green, background_color)
+    screen.blit(font.render("Actual(r,r|b,b): ", True, white, background_color), (width - 220, 40))
+    screen.blit(num_actual, (width - 80, 40))
+    screen.blit(font.render("W(r,r|b,b)*Nr*Nr: ", True, white, background_color), (width - 220, 60))
+    screen.blit(num_expected, (width - 80, 60))
+    #Nr and Nb
+    screen.blit(font.render("Nr: ", True, white, background_color), (width - 220, 80))
+    n_r = font.render(str(occ_num_r), True, green, background_color)
+    screen.blit(n_r, (width - 80, 80))
+    screen.blit(font.render("Nb: ", True, white, background_color), (width - 220, 100))
+    n_b = font.render(str(occ_num_b), True, green, background_color)
+    screen.blit(n_b, (width - 80, 100))
+
+    # print(expected-num_rr2bb)
+
+def calc_occ_num():
+    pass
+
+def calc_num_proc(p1,p2,i):
+    pass
 
 
 # initialize particles
@@ -364,6 +430,11 @@ while running:
             rr = timer_counter - 1  # index at which time is reversed
             reverse_time = time.time()
 
+    num_rr2bb = 0
+    num_bb2rr = 0
+    occ_num_r = 0
+    occ_num_b = 0
+
     display_flag, time_elapsed = frame_display(time_elapsed)     # refresh screen with background for every frame
 
     timer_counter = display_time(timer_counter)  # display time
@@ -385,8 +456,25 @@ while running:
             reverse_velocity()
             reverse_once = 1
 
+    for particle in particles:
+        if particle.color == color1:
+            occ_num_r += 1
+        elif particle.color == color2:
+            occ_num_b += 1
+
     t_iter = collider(t_iter)
-    move_and_display()     # move_and_display(particles)
+    if timer_counter - prev_time_counter == step:
+        num_rr2bb_avg = sum(num_rr2bb_l[-step:])/step
+        prev_time_counter = timer_counter
+
+    num_rr2bb_l.append(num_rr2bb)
+    w_rr2bb = num_rr2bb/occ_num_r**2
+    w_rr2bb_l.append(w_rr2bb)
+
+    # print(timer_counter, "W: :",w_rr2bb, "OccNum: ", occ_num_r)
+
+    display_sza()
+    move_and_display()  # move_and_display(particles)
     memory_store()  # store positions in history table for reverse display through memory
 
     if mode == 1:
@@ -394,9 +482,12 @@ while running:
     elif mode == 4:
         rev_frame = rev_frame - 1
 
+    # print("-------------------")
     pygame.display.flip()
 
-
+# print(sum(w_rr2bb_l))
+print(time_list[-1])
+print("Avg W: ", sum(w_rr2bb_l)/timer_counter)
 
 # Stossahalantz
 # Multiple collision function
@@ -406,6 +497,9 @@ while running:
 # Wall bounce optimize
 # Frame rate
 # Historical reverse initial position error/time
+
+# sticking collision and then press reverse the particles immediately separate instead of sticking for the amount of
+#time they were sticking before collision
 
 """
 I'm just thinking about the Stosszahlansatz (SZA). I think we should do the
@@ -417,3 +511,25 @@ SZA is satisfied (with those previously determined W's) during the forward/
 backward process. And this can be done for both deterministic and
 indeterministic processes.
 """
+
+
+
+# r,r -> b,b
+# b,b -> r,r
+# b,r -> b,r
+# r,b -> r,b
+
+# number of r,r -> b,b per unit time / (occ_num_r1)(occ_num_r2)
+# number of b,b -> r,r per unit time / (occ_num_b1)(occ_num_b2)
+
+# Divide w by time
+# - Unit of time - 5 seconds, longer period of time fluctuation is less
+# - High deviation from actual number of process indicated by red
+# - When it goes back, close to in equilibrium state the deviation increases
+# - Pause running the program to show the difference
+
+# Actual number of process vs Processes according to SZA
+# Pause
+
+
+#sticking collisions create problem for reverse and W calculation
