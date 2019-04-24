@@ -394,26 +394,9 @@ while running:
     elif mode == 4:
         rev_frame = rev_frame - 1
 
+
     pygame.display.flip()
 
 
 
-# Stossahalantz
-# Multiple collision function
 
-# Input output
-
-# Wall bounce optimize
-# Frame rate
-# Historical reverse initial position error/time
-
-"""
-I'm just thinking about the Stosszahlansatz (SZA). I think we should do the
-following. To run first a longer period of time to measure the W-s, by taking
-the statistics how many different processes happen of a given type in a unit
-time divided by the product of the occupation numbers. After a while the
-values of W-s become more or less stable. In the next run we can examine how
-SZA is satisfied (with those previously determined W's) during the forward/
-backward process. And this can be done for both deterministic and
-indeterministic processes.
-"""

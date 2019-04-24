@@ -56,7 +56,7 @@ occ_num_r = 0
 occ_num_b = 0
 # occ_num_b2 = 0
 
-step = 5 #for calculating average value of actual number of processes
+step = 10 #for calculating average value of actual number of processes
 num_rr2bb = 0
 num_bb2rr = 0
 num_rr2bb_avg = 0
@@ -72,6 +72,8 @@ w_rr2bb_l = []
 
 # W list for b,b -> r,r
 w_bb2rr = []
+
+pause = False
 
 running = True
 pygame.init()
@@ -340,6 +342,7 @@ def table_check_reverse(colliding_particle, particle, t_iter_f):
             particle.v_y = reverse_table[k, 3]
             colliding_particle.v_x = reverse_table[k, 4]
             colliding_particle.v_y = reverse_table[k, 5]
+            # color stuff
             p1_color = particle.color
             p2_color = colliding_particle.color
             color_change(particle, colliding_particle)
@@ -386,6 +389,14 @@ def display_sza():
 
     # print(expected-num_rr2bb)
 
+
+# def paused():
+#     global pause, event
+#     while pause:
+#         for event in pygame.event.get():
+#             if event.type == pygame.KEYDOWN and event.key == pygame.K_g:
+#                 pause = False
+
 def calc_occ_num():
     pass
 
@@ -411,32 +422,42 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_f:  # press 'f' for forward motion
-            mode = 1
-            start_time = time_elapsed = time.time()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:  # press 'r' for reversing velocities
-            mode = 2
-            reverse_once = 0
-            rr = timer_counter - 1  # index at which time is reversed
-            reverse_time = time.time()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_d:  # press 'd' for reversing motion from table
-            mode = 3
-            reverse_once = 0
-            rr = timer_counter - 1  # index at which time is reversed
-            reverse_time = time.time()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_m:  # press 'h' for reversing motion from memory
-            mode = 4
-            rev_frame = frame - 1
-            rr = timer_counter - 1  # index at which time is reversed
-            reverse_time = time.time()
+        if event.type == pygame.KEYDOWN:
+            pause = False
+            if event.key == pygame.K_f:  # press 'f' for forward motion
+                mode = 1
+                start_time = time_elapsed = time.time()
+            if event.key == pygame.K_r:  # press 'r' for reversing velocities
+                mode = 2
+                reverse_once = 0
+                rr = timer_counter - 1  # index at which time is reversed
+                reverse_time = time.time()
+            if event.key == pygame.K_d:  # press 'd' for reversing motion from table
+                mode = 3
+                reverse_once = 0
+                rr = timer_counter - 1  # index at which time is reversed
+                reverse_time = time.time()
+            if event.key == pygame.K_m:  # press 'h' for reversing motion from memory
+                mode = 4
+                rev_frame = frame - 1
+                rr = timer_counter - 1  # index at which time is reversed
+                reverse_time = time.time()
+        if event.type == pygame.KEYUP and event.key == pygame.K_p:
+                pause = True
 
+    while pause:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYUP and event.key == pygame.K_p:
+                pause = False
+
+    screen.fill(background_color)
     num_rr2bb = 0
     num_bb2rr = 0
     occ_num_r = 0
     occ_num_b = 0
 
-    display_flag, time_elapsed = frame_display(time_elapsed)     # refresh screen with background for every frame
-
+    # display_flag, time_elapsed = frame_display(time_elapsed)     # refresh screen with background for every frame
+    display_flag = 1
     timer_counter = display_time(timer_counter)  # display time
 
     if mode != 4 and timer_counter < 0:  # stop animation when reverse time reaches 0
@@ -456,16 +477,16 @@ while running:
             reverse_velocity()
             reverse_once = 1
 
+    t_iter = collider(t_iter)
+    if timer_counter - prev_time_counter == step:
+        num_rr2bb_avg = sum(num_rr2bb_l[-step:])/step
+        prev_time_counter = timer_counter
+
     for particle in particles:
         if particle.color == color1:
             occ_num_r += 1
         elif particle.color == color2:
             occ_num_b += 1
-
-    t_iter = collider(t_iter)
-    if timer_counter - prev_time_counter == step:
-        num_rr2bb_avg = sum(num_rr2bb_l[-step:])/step
-        prev_time_counter = timer_counter
 
     num_rr2bb_l.append(num_rr2bb)
     w_rr2bb = num_rr2bb/occ_num_r**2
@@ -482,54 +503,8 @@ while running:
     elif mode == 4:
         rev_frame = rev_frame - 1
 
-    # print("-------------------")
     pygame.display.flip()
 
 # print(sum(w_rr2bb_l))
 print(time_list[-1])
 print("Avg W: ", sum(w_rr2bb_l)/timer_counter)
-
-# Stossahalantz
-# Multiple collision function
-
-# Input output
-
-# Wall bounce optimize
-# Frame rate
-# Historical reverse initial position error/time
-
-# sticking collision and then press reverse the particles immediately separate instead of sticking for the amount of
-#time they were sticking before collision
-
-"""
-I'm just thinking about the Stosszahlansatz (SZA). I think we should do the
-following. To run first a longer period of time to measure the W-s, by taking
-the statistics how many different processes happen of a given type in a unit
-time divided by the product of the occupation numbers. After a while the
-values of W-s become more or less stable. In the next run we can examine how
-SZA is satisfied (with those previously determined W's) during the forward/
-backward process. And this can be done for both deterministic and
-indeterministic processes.
-"""
-
-
-
-# r,r -> b,b
-# b,b -> r,r
-# b,r -> b,r
-# r,b -> r,b
-
-# number of r,r -> b,b per unit time / (occ_num_r1)(occ_num_r2)
-# number of b,b -> r,r per unit time / (occ_num_b1)(occ_num_b2)
-
-# Divide w by time
-# - Unit of time - 5 seconds, longer period of time fluctuation is less
-# - High deviation from actual number of process indicated by red
-# - When it goes back, close to in equilibrium state the deviation increases
-# - Pause running the program to show the difference
-
-# Actual number of process vs Processes according to SZA
-# Pause
-
-
-#sticking collisions create problem for reverse and W calculation
