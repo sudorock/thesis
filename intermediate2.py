@@ -3,6 +3,7 @@ from pygame import gfxdraw
 import random
 import time
 import numpy as np
+import statistics as s
 
 dt = float(input("Enter a value for dt (1 for default): "))
 color_factor = float(input("Enter a value for Colour Change Determinancy (0 - 100): ")) / 100
@@ -50,13 +51,15 @@ frame_rate = 0.03  # frame rate of display
 time_elapsed = 0  # to store time elapsed for clock
 display_flag = 0  # flag for display of particles according to frame rate
 
+frame_time_ratio = 5.9  # number of program steps per minute
+
 # number of particles in a certain state (occupation number)
 occ_num_r = 0
 # occ_num_r2 = 0
 occ_num_b = 0
 # occ_num_b2 = 0
 
-step = 10 #for calculating average value of actual number of processes
+interval = 2 #for calculating average value of actual number of processes
 num_rr2bb = 0
 num_bb2rr = 0
 num_rr2bb_avg = 0
@@ -297,7 +300,8 @@ def store(p1, p2, t_iterator, before):
 
 def display_time(counter):
     if mode == 1:       # forward time
-        time_list.append(int(time.time() - start_time))
+        # time_list.append(int(time.time() - start_time))
+        time_list.append(int(counter/frame_time_ratio))
         timer = font.render(str(time_list[counter]), True, green, background_color)
         screen.blit(font.render("Time: ", True, white, background_color), (width - 220, 20))
         screen.blit(timer, (width - 110, 20))
@@ -370,16 +374,17 @@ def calc_w():
 
 
 def display_sza():
-    w_avg = 0.0002
-    expected = w_avg*(occ_num_r**2)
-    #Actual and Calculated
+    w_avg = 0.0002      # estimated from a preliminary long run
+    # Actual number of processes
     num_actual = font.render(str(num_rr2bb_avg), True, green, background_color)
-    num_expected = font.render(str(round(expected,4)), True, green, background_color)
     screen.blit(font.render("Actual(r,r|b,b): ", True, white, background_color), (width - 220, 40))
     screen.blit(num_actual, (width - 80, 40))
+    # Expected number of processes
+    expected = w_avg * (occ_num_r ** 2)
+    num_expected = font.render(str(round(expected, 4)), True, green, background_color)
     screen.blit(font.render("W(r,r|b,b)*Nr*Nr: ", True, white, background_color), (width - 220, 60))
     screen.blit(num_expected, (width - 80, 60))
-    #Nr and Nb
+    # Number of red and Number of blue particles
     screen.blit(font.render("Nr: ", True, white, background_color), (width - 220, 80))
     n_r = font.render(str(occ_num_r), True, green, background_color)
     screen.blit(n_r, (width - 80, 80))
@@ -390,19 +395,16 @@ def display_sza():
     # print(expected-num_rr2bb)
 
 
-# def paused():
-#     global pause, event
-#     while pause:
-#         for event in pygame.event.get():
-#             if event.type == pygame.KEYDOWN and event.key == pygame.K_g:
-#                 pause = False
-
 def calc_occ_num():
     pass
 
 def calc_num_proc(p1,p2,i):
     pass
 
+
+#temp stuff
+# mem = []
+# ii = 0
 
 # initialize particles
 p_iter = 1
@@ -427,7 +429,7 @@ while running:
             if event.key == pygame.K_f:  # press 'f' for forward motion
                 mode = 1
                 start_time = time_elapsed = time.time()
-            if event.key == pygame.K_r:  # press 'r' for reversing velocities
+            if event.key == pygame.K_i:  # press 'i' for reversing velocities
                 mode = 2
                 reverse_once = 0
                 rr = timer_counter - 1  # index at which time is reversed
@@ -437,13 +439,13 @@ while running:
                 reverse_once = 0
                 rr = timer_counter - 1  # index at which time is reversed
                 reverse_time = time.time()
-            if event.key == pygame.K_m:  # press 'h' for reversing motion from memory
+            if event.key == pygame.K_m:  # press 'm' for reversing motion from memory
                 mode = 4
                 rev_frame = frame - 1
                 rr = timer_counter - 1  # index at which time is reversed
                 reverse_time = time.time()
         if event.type == pygame.KEYUP and event.key == pygame.K_p:
-                pause = True
+            pause = True
 
     while pause:
         for event in pygame.event.get():
@@ -451,10 +453,14 @@ while running:
                 pause = False
 
     screen.fill(background_color)
+
+    # reset values at every program step
     num_rr2bb = 0
     num_bb2rr = 0
     occ_num_r = 0
     occ_num_b = 0
+
+    # ii += 1
 
     # display_flag, time_elapsed = frame_display(time_elapsed)     # refresh screen with background for every frame
     display_flag = 1
@@ -478,10 +484,13 @@ while running:
             reverse_once = 1
 
     t_iter = collider(t_iter)
-    if timer_counter - prev_time_counter == step:
-        num_rr2bb_avg = sum(num_rr2bb_l[-step:])/step
+
+    # Estimate Actual processes for every
+    if timer_counter - prev_time_counter >= interval:
+        num_rr2bb_avg = sum(num_rr2bb_l[-interval:])/interval
         prev_time_counter = timer_counter
 
+    # Estimate occupation numbers at every frame
     for particle in particles:
         if particle.color == color1:
             occ_num_r += 1
@@ -503,8 +512,16 @@ while running:
     elif mode == 4:
         rev_frame = rev_frame - 1
 
+    # k = int(time.time() - start_time)
+    #
+    # if k > 1:
+    #     if ii/k > 0:
+    #         mem.append(ii/k)
+    #         print(ii, " ", ii/k)
+
     pygame.display.flip()
 
 # print(sum(w_rr2bb_l))
 print(time_list[-1])
 print("Avg W: ", sum(w_rr2bb_l)/timer_counter)
+# print("Avg ratio: ", s.mean(mem)," Mode:", s.mode(round(x,3) for x in mem), " stdev: ", s.stdev(mem))
