@@ -86,6 +86,8 @@ pygame.display.set_caption('Direction of Time')
 screen.fill(background_color)
 font = pygame.font.SysFont(None, 22, bold=True)
 
+#temp
+font2 = pygame.font.SysFont(None, 48, bold=True)
 
 class Particle:
 
@@ -180,21 +182,28 @@ def color_change(p1, p2):
 
 
 def multiple_collision(c_particle, particles_f, c_count):
+    global pause
     for i, particle in enumerate(particles_f):
         if check_collision(c_particle, particle):
+            c_count += 1
             c_count += multiple_collision(particle, particles_f[i + 1:], c_count)
+            # print(c_count)
+            # if c_count >= 2:
+            #     screen.blit(font2.render(str(c_count), True, green, background_color), (c_particle.x, c_particle.y))
+            #     pause = True
     return c_count
 
 
 def collider(t_iter_f):
+    collision_count = 0
+    multiple_collision_count = 0
     for i, particle in enumerate(particles):
-        collision_count = 0
-        for particle2 in particles:
+        for particle2 in particles[i + 1:]:
             if check_collision(particle, particle2):
-                collision_count += 1
                 colliding_particle = particle2
-                collision_count = multiple_collision(particle, particles[i + 1:], collision_count)
-        if collision_count == 1:
+                multiple_collision_count = multiple_collision(particle2, particles[i + 1:], multiple_collision_count)
+                collision_count += 1
+        if collision_count == 1 and multiple_collision_count == 0:
             if mode == 1:
                 t_iter_f = store(particle, colliding_particle, t_iter_f, 1)  # store velocities before collision
                 collide(particle, colliding_particle)
@@ -203,6 +212,8 @@ def collider(t_iter_f):
                 collide(particle, colliding_particle)
             elif mode == 3:
                 table_check_reverse(colliding_particle, particle, t_iter_f)
+        collision_count = 0
+        multiple_collision_count = 0
     return t_iter_f
 
 
@@ -281,6 +292,7 @@ def memory_store():
 
 def table_check_reverse(colliding_particle, particle, t_iter_f):
     global num_rr2bb
+    # find = 0
     collision_check = [colliding_particle.x - particle.x,
                        colliding_particle.y - particle.y,
                        particle.v_x,
@@ -306,7 +318,19 @@ def table_check_reverse(colliding_particle, particle, t_iter_f):
             if (p1_color == color1 and p2_color == color1) and (particle.color == color2 and colliding_particle.color == color2):
                 num_rr2bb += 1
                 # print(num_rr2bb, " ", w_rr2bb)
+            # find += 1
+            # print(find)
             break
+    # print(find)
+    # if find == 0:
+    #     screen.fill(background_color)
+    #     pygame.gfxdraw.aacircle(screen, int(colliding_particle.x), int(colliding_particle.y), colliding_particle.size, colliding_particle.color)
+    #     pygame.gfxdraw.filled_circle(screen, int(colliding_particle.x), int(colliding_particle.y), colliding_particle.size, colliding_particle.color)
+    #     pygame.gfxdraw.aacircle(screen, int(particle.x), int(particle.y), particle.size,
+    #                             particle.color)
+    #     pygame.gfxdraw.filled_circle(screen, int(particle.x), int(particle.y),
+    #                                  particle.size, particle.color)
+    #     pause = True
 
 
 def frame_display(time_elapsed_f):
@@ -327,15 +351,18 @@ def frame_display(time_elapsed_f):
 
 def display_sza():
     w_avg = 0.0002      # estimated from a preliminary long run
+
     # Actual number of processes
     num_actual = font.render(str(round(num_rr2bb_avg, 3)), True, green, background_color)
     screen.blit(font.render("Actual(r,r|b,b): ", True, white, background_color), (width - 220, 40))
     screen.blit(num_actual, (width - 80, 40))
+
     # Expected number of processes
     expected = w_avg * (occ_num_r ** 2)
     num_expected = font.render(str(round(expected, 3)), True, green, background_color)
     screen.blit(font.render("W(r,r|b,b)*Nr*Nr: ", True, white, background_color), (width - 220, 60))
     screen.blit(num_expected, (width - 80, 60))
+
     # Number of red and Number of blue particles
     screen.blit(font.render("Nr: ", True, white, background_color), (width - 220, 80))
     n_r = font.render(str(occ_num_r), True, green, background_color)
@@ -406,7 +433,7 @@ while running:
                 rr = timer_counter - 1  # index at which time is reversed
                 reverse_time = time.time()
         if event.type == pygame.KEYUP and event.key == pygame.K_p:
-            pause = True
+            pause = not pause
 
     pause = pause_program(pause)
 
@@ -456,7 +483,6 @@ while running:
     w_rr2bb_l.append(w_rr2bb)
 
     # print(timer_counter, "W: :",w_rr2bb, "OccNum: ", occ_num_r)
-
     display_sza()
     move_and_display()  # move_and_display(particles)
     memory_store()  # store positions in history table for reverse display through memory
@@ -465,6 +491,7 @@ while running:
         frame = frame + 1
     elif mode == 4:
         rev_frame = rev_frame - 1
+
 
     pygame.display.flip()
 
