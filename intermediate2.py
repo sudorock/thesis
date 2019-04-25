@@ -59,10 +59,11 @@ occ_num_r = 0
 occ_num_b = 0
 # occ_num_b2 = 0
 
-interval = 2 #for calculating average value of actual number of processes
+interval = 12   # for calculating average value of actual number of processes
 num_rr2bb = 0
 num_bb2rr = 0
 num_rr2bb_avg = 0
+
 
 num_rr2bb_l = []
 num_bb2rr_l = []
@@ -158,7 +159,6 @@ def collide(p1, p2):
     if (p1_color == color1 and p2_color == color1) and (p1.color == color2 and p2.color == color2):
         num_rr2bb += 1
         # print(num_rr2bb," ", w_rr2bb)
-
 
 
 # particle color change after collision
@@ -265,11 +265,11 @@ def move_and_display():
                 pygame.gfxdraw.filled_circle(screen, memory[rev_frame, k, 0], memory[rev_frame, k, 1],
                                              particle_size, memory[rev_frame, k, 2])
     else:
-        for particle_f in particles:
-            particle_f.move()
-            particle_f.wall_bounce()
+        for particle in particles:
+            particle.move()
+            particle.wall_bounce()
             if display_flag == 1:
-                particle_f.display()
+                particle.display()
 
 
 # reverse velocity
@@ -372,16 +372,17 @@ def frame_display(time_elapsed_f):
 def calc_w():
     pass
 
+mem = []
 
 def display_sza():
     w_avg = 0.0002      # estimated from a preliminary long run
     # Actual number of processes
-    num_actual = font.render(str(num_rr2bb_avg), True, green, background_color)
+    num_actual = font.render(str(round(num_rr2bb_avg, 3)), True, green, background_color)
     screen.blit(font.render("Actual(r,r|b,b): ", True, white, background_color), (width - 220, 40))
     screen.blit(num_actual, (width - 80, 40))
     # Expected number of processes
     expected = w_avg * (occ_num_r ** 2)
-    num_expected = font.render(str(round(expected, 4)), True, green, background_color)
+    num_expected = font.render(str(round(expected, 3)), True, green, background_color)
     screen.blit(font.render("W(r,r|b,b)*Nr*Nr: ", True, white, background_color), (width - 220, 60))
     screen.blit(num_expected, (width - 80, 60))
     # Number of red and Number of blue particles
@@ -392,19 +393,25 @@ def display_sza():
     n_b = font.render(str(occ_num_b), True, green, background_color)
     screen.blit(n_b, (width - 80, 100))
 
-    # print(expected-num_rr2bb)
+    print(num_rr2bb_avg, " ",expected)
+    mem.append(expected-num_rr2bb_avg)
 
 
-def calc_occ_num():
-    pass
+def actual_processes():
+    global num_rr2bb_avg, prev_time_counter
+    if mode == 1:
+        if timer_counter - prev_time_counter == interval:
+            num_rr2bb_avg = sum(num_rr2bb_l[-interval:]) / interval
+            prev_time_counter = timer_counter
+    else:
+        if prev_time_counter - timer_counter == interval:
+            num_rr2bb_avg = sum(num_rr2bb_l[-interval:]) / interval
+            prev_time_counter = timer_counter
+
 
 def calc_num_proc(p1,p2,i):
     pass
 
-
-#temp stuff
-# mem = []
-# ii = 0
 
 # initialize particles
 p_iter = 1
@@ -460,8 +467,6 @@ while running:
     occ_num_r = 0
     occ_num_b = 0
 
-    # ii += 1
-
     # display_flag, time_elapsed = frame_display(time_elapsed)     # refresh screen with background for every frame
     display_flag = 1
     timer_counter = display_time(timer_counter)  # display time
@@ -485,16 +490,14 @@ while running:
 
     t_iter = collider(t_iter)
 
-    # Estimate Actual processes for every
-    if timer_counter - prev_time_counter >= interval:
-        num_rr2bb_avg = sum(num_rr2bb_l[-interval:])/interval
-        prev_time_counter = timer_counter
+    # Estimate Actual processes for every interval
+    actual_processes()
 
     # Estimate occupation numbers at every frame
-    for particle in particles:
-        if particle.color == color1:
+    for Particle in particles:
+        if Particle.color == color1:
             occ_num_r += 1
-        elif particle.color == color2:
+        elif Particle.color == color2:
             occ_num_b += 1
 
     num_rr2bb_l.append(num_rr2bb)
@@ -512,16 +515,8 @@ while running:
     elif mode == 4:
         rev_frame = rev_frame - 1
 
-    # k = int(time.time() - start_time)
-    #
-    # if k > 1:
-    #     if ii/k > 0:
-    #         mem.append(ii/k)
-    #         print(ii, " ", ii/k)
-
     pygame.display.flip()
 
 # print(sum(w_rr2bb_l))
 print(time_list[-1])
 print("Avg W: ", sum(w_rr2bb_l)/timer_counter)
-# print("Avg ratio: ", s.mean(mem)," Mode:", s.mode(round(x,3) for x in mem), " stdev: ", s.stdev(mem))
