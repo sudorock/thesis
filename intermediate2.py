@@ -3,7 +3,7 @@ from pygame import gfxdraw
 import random
 import time
 import numpy as np
-import statistics as s
+
 
 dt = float(input("Enter a value for dt (1 for default): "))
 color_factor = float(input("Enter a value for Colour Change Determinancy (0 - 100): ")) / 100
@@ -40,7 +40,7 @@ memory = np.zeros((10000, number_of_particles + 2, 3), dtype=object)  # store po
 frame = 0  # counter for history
 
 rev_frame = 0  # iterator for reverse frame
-start_time = 0  # store time when 'f' is pressed
+# start_time = 0  # store time when 'f' is pressed
 reverse_time = 0  # store time when 'r' is pressed
 
 time_list = []  # stores time values in seconds
@@ -130,7 +130,8 @@ class Particle:
 
 # check if the particles collided
 def check_collision(p1, p2):
-    s = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2  # s = square of distance between particles
+
+    s = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2  # square of distance between particles
 
     if s <= (p1.size + p2.size) ** 2 and s != 0:
         return True
@@ -140,11 +141,13 @@ def check_collision(p1, p2):
 
 # particle collision
 def collide(p1, p2):
+    global num_rr2bb
+    
     s = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2  # s = square of distance between particles
     e1 = p2.x - p1.x
     e2 = p2.y - p1.y
     a = e1 * (p1.v_x - p2.v_x) + e2 * (p1.v_y - p2.v_y)  # numerator of lamda
-    global num_rr2bb
+
     if a >= 0:
         lamda = a / s
         # new velocities after collision
@@ -176,70 +179,21 @@ def color_change(p1, p2):
             p1.color = color1
 
 
-def multiple_collision(particle, particles_f):
-    collision_count = 0
-    for particle2 in particles_f:
-        if check_collision(particle, particle2):
-            collision_count = collision_count + 1
-            colliding_particle = particle2
-            for particle3 in particles_f:
-                if check_collision(particle2, particle3) and particle3 != particle:
-                    collision_count = collision_count + 1
-                    for particle4 in particles_f:
-                        if check_collision(particle3, particle4) and particle4 != particle2:
-                            collision_count = collision_count + 1
-                            for particle5 in particles_f:
-                                if check_collision(particle4, particle5) and particle5 != particle3:
-                                    collision_count = collision_count + 1
-                                    for particle6 in particles_f:
-                                        if check_collision(particle5, particle6) and particle6 != particle4:
-                                            collision_count = collision_count + 1
-                                            for particle7 in particles_f:
-                                                if check_collision(particle6, particle7) and particle7 != particle5:
-                                                    collision_count = collision_count + 1
-                                                    for particle8 in particles_f:
-                                                        if check_collision(particle7,
-                                                                           particle8) and particle8 != particle6:
-                                                            collision_count = collision_count + 1
-                                                            for particle9 in particles_f:
-                                                                if check_collision(particle8, particle9):
-                                                                    collision_count = collision_count + 1
-                                                                    for particle10 in particles_f:
-                                                                        if check_collision(particle10, particle9):
-                                                                            collision_count = collision_count + 1
-                                                                            for particle11 in particles_f:
-                                                                                if check_collision(particle10,
-                                                                                                   particle11):
-                                                                                    collision_count = collision_count + 1
-                                                                                    for particle12 in particles_f:
-                                                                                        if check_collision(particle12,
-                                                                                                           particle11):
-                                                                                            collision_count = collision_count + 1
-                                                                                            for particle13 in particles_f:
-                                                                                                if check_collision(
-                                                                                                        particle13,
-                                                                                                        particle12):
-                                                                                                    collision_count = collision_count + 1
-                                                                                                    for particle14 in particles_f:
-                                                                                                        if check_collision(
-                                                                                                                particle14,
-                                                                                                                particle13):
-                                                                                                            collision_count = collision_count + 1
-                                                                                                            for particle15 in particles_f:
-                                                                                                                if check_collision(
-                                                                                                                        particle14,
-                                                                                                                        particle15):
-                                                                                                                    collision_count = collision_count + 1
-
-    if collision_count == 1:
-        return collision_count, colliding_particle
-    else:
-        return collision_count, particle
+def multiple_collision(c_particle, particles_f, c_count):
+    for i, particle in enumerate(particles_f):
+        if check_collision(c_particle, particle):
+            c_count += multiple_collision(particle, particles_f[i + 1:], c_count)
+    return c_count
 
 
 def collider(t_iter_f):
     for i, particle in enumerate(particles):
-        collision_count, colliding_particle = multiple_collision(particle, particles[i + 1:])
+        collision_count = 0
+        for particle2 in particles:
+            if check_collision(particle, particle2):
+                collision_count += 1
+                colliding_particle = particle2
+                collision_count = multiple_collision(particle, particles[i + 1:], collision_count)
         if collision_count == 1:
             if mode == 1:
                 t_iter_f = store(particle, colliding_particle, t_iter_f, 1)  # store velocities before collision
@@ -300,7 +254,6 @@ def store(p1, p2, t_iterator, before):
 
 def display_time(counter):
     if mode == 1:       # forward time
-        # time_list.append(int(time.time() - start_time))
         time_list.append(int(counter/frame_time_ratio))
         timer = font.render(str(time_list[counter]), True, green, background_color)
         screen.blit(font.render("Time: ", True, white, background_color), (width - 220, 20))
@@ -369,10 +322,8 @@ def frame_display(time_elapsed_f):
         return 0, time_elapsed_f
 
 
-def calc_w():
-    pass
+# mem = []
 
-mem = []
 
 def display_sza():
     w_avg = 0.0002      # estimated from a preliminary long run
@@ -393,8 +344,8 @@ def display_sza():
     n_b = font.render(str(occ_num_b), True, green, background_color)
     screen.blit(n_b, (width - 80, 100))
 
-    print(num_rr2bb_avg, " ",expected)
-    mem.append(expected-num_rr2bb_avg)
+    # print(num_rr2bb_avg, " ", expected)
+    # mem.append(expected-num_rr2bb_avg)
 
 
 def actual_processes():
@@ -409,23 +360,26 @@ def actual_processes():
             prev_time_counter = timer_counter
 
 
-def calc_num_proc(p1,p2,i):
-    pass
+def pause_program(pause_f):
+    while pause_f:
+        for pause_event in pygame.event.get():
+            if pause_event.type == pygame.KEYUP and pause_event.key == pygame.K_p:
+                return False
 
 
 # initialize particles
 p_iter = 1
-a = 1
+w = 1
 while p_iter <= number_of_particles:
     for z in range(1, int(number_of_particles ** 0.5) + 1):
         x_init = 4 * z * particle_size + particle_size
-        y_init = 4 * a * particle_size + particle_size
+        y_init = 4 * w * particle_size + particle_size
         v_x_init = v_initial * random.randint(0, 5)
         v_y_init = v_initial * random.randint(0, 5)
         particle_init = Particle(x_init, y_init, v_x_init, v_y_init, particle_size, color1)
         particles.append(particle_init)
         p_iter = p_iter + 1
-    a = a + 1
+    w += 1
 
 while running:
     for event in pygame.event.get():
@@ -435,7 +389,7 @@ while running:
             pause = False
             if event.key == pygame.K_f:  # press 'f' for forward motion
                 mode = 1
-                start_time = time_elapsed = time.time()
+                # start_time = time_elapsed = time.time()
             if event.key == pygame.K_i:  # press 'i' for reversing velocities
                 mode = 2
                 reverse_once = 0
@@ -454,10 +408,7 @@ while running:
         if event.type == pygame.KEYUP and event.key == pygame.K_p:
             pause = True
 
-    while pause:
-        for event in pygame.event.get():
-            if event.type == pygame.KEYUP and event.key == pygame.K_p:
-                pause = False
+    pause = pause_program(pause)
 
     screen.fill(background_color)
 
@@ -518,5 +469,5 @@ while running:
     pygame.display.flip()
 
 # print(sum(w_rr2bb_l))
-print(time_list[-1])
-print("Avg W: ", sum(w_rr2bb_l)/timer_counter)
+# print(time_list[-1])
+# print("Avg W: ", sum(w_rr2bb_l)/timer_counter)
